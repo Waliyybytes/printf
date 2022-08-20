@@ -20,9 +20,29 @@ jobs:
           name: Create Cloudformation Stack
           command: aws cloudformation deploy --template-file template.yml --stack-name myStack-${CIRCLE_WORKFLOW_ID:0:5} --region us-east-1
 
+  configure_infrastructure:
+    docker:
+      - image: python:3.7alpine3.11
+     steps:
+      - checkout
+      - add_ssh_keys:
+          fingerprints: [46:c5:c3:23:f8:b9:45:e1:99:86:90:33:19:fe:ae:64]
+      - run: 
+          name: install dependencies
+          command: |
+            apk add --update ansible
+      - run: 
+          name: configure server
+          command: |
+            ansible-playbook -i inventory.txt template.yml
+
 # Invoke jobs via workflows
 # See: https://circleci.com/docs/2.0/configuration-reference/#workflows
 workflows:
   create-infra-workflow:
     jobs:
       - create_infrastructure
+      - configure_infrastructure:
+            requires:
+                - create_infrastructure
+      
